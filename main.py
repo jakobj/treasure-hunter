@@ -10,7 +10,7 @@ import gp
 
 from lib import utils
 
-LEVEL = 4
+LEVEL = 5
 
 
 def draw_game_state(level_dict, position, step, max_step):
@@ -27,7 +27,7 @@ def draw_game_state(level_dict, position, step, max_step):
     time.sleep(0.1)
 
 
-inverse_novelty = collections.defaultdict(int)
+inverse_novelty = collections.defaultdict(lambda: 1)
 
 
 def play(level_fn, moves, *, do_draw_game_state=False):
@@ -45,20 +45,25 @@ def play(level_fn, moves, *, do_draw_game_state=False):
             new_position = (position[0], position[1] - 1)
         elif move == 3:
             new_position = (position[0] + 1, position[1])
+        elif move == 4:  # blow up fractured wall
+            if level_dict[(position[0], position[1] + 1)] == '+': level_dict[(position[0], position[1] + 1)] = ' '
+            if level_dict[(position[0] - 1, position[1])] == '+': level_dict[(position[0] - 1, position[1])] = ' '
+            if level_dict[(position[0], position[1] - 1)] == '+': level_dict[(position[0], position[1] - 1)] = ' '
+            if level_dict[(position[0] + 1, position[1])] == '+': level_dict[(position[0] + 1, position[1])] = ' '
+            new_position = position
         else:
             assert False
 
-        if level_dict[new_position] != '#':
+        if level_dict[new_position] not in ('#', '+'):
             position = new_position
 
         if do_draw_game_state:
             draw_game_state(level_dict, position, step, len(moves))
 
-        if inverse_novelty[position] > 0.:
-            novelty += 1. / inverse_novelty[position]
-        else:
-            novelty += 1.
+        novelty += 1. / inverse_novelty[position]
 
+        # we return before adjusting the novelty of the goal position, because
+        # reaching the exit should always provide novelty
         if level_dict[position] == 'E':
             return novelty / step
 
@@ -80,7 +85,7 @@ if __name__ == '__main__':
         'seed': 1234,
         'n_parents': 5,
         'n_offsprings': 5,
-        'max_generations': 500,
+        'max_generations': 1000,
         'n_breeding': 5,
         'tournament_size': 6,
         'mutation_rate': 0.1,
@@ -89,7 +94,7 @@ if __name__ == '__main__':
 
     genome_params = {
         'genome_length': 100,
-        'primitives': list(range(4)),
+        'primitives': list(range(5)),
     }
 
     np.random.seed(pop_params['seed'])

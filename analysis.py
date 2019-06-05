@@ -11,7 +11,7 @@ def visualize_fitness(history):
 
     plt.plot(history['fitness'])
     plt.yscale('log')
-    plt.ylim(1e-4, 1e0)
+    plt.ylim(1e-5, 1e0)
     plt.show()
 
 
@@ -23,4 +23,4 @@ if __name__ == '__main__':
         history = pickle.load(f)
 
     # visualize_fitness(history)
-    play(history['level_fn'], history['dna'][490], do_draw_game_state=True)
+    play(history['level_fn'], history['dna'][900], do_draw_game_state=True)
