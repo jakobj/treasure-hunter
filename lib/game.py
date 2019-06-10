@@ -10,8 +10,8 @@ def draw_game_state(level_dict, agent_position, step, max_step):
     game_state[agent_position] = '*'
 
     print(step + 1, '/', max_step)
-    for i in range(level_dict['n_rows']):
-        for j in range(level_dict['n_cols']):
+    for i in range(level_dict['props']['n_rows']):
+        for j in range(level_dict['props']['n_cols']):
             print(game_state[(i, j)], end='')
     print()
 
@@ -20,16 +20,19 @@ def draw_game_state(level_dict, agent_position, step, max_step):
 
 def play(level_dict, agent, max_steps, *, do_draw_game_state=False):
 
-    agent_position = level_dict['S']  # set agent to starting position
+    agent_position = level_dict['props']['S']  # set agent to starting position
 
-    history_state = np.empty((max_steps, 2))
-    for step in range(max_steps):
-        # an observation consists of the content of the reachable positions
-        obs = (level_dict[(agent_position[0], agent_position[1] + 1)],
+    history_state = np.empty((max_steps + 1, 2))
+    history_state[0] = agent_position
+    for step in range(1, max_steps + 1):
+        # an observation consists of the content of the current and reachable
+        # positions
+        obs = (level_dict[agent_position],
+               level_dict[(agent_position[0], agent_position[1] + 1)],
                level_dict[(agent_position[0] - 1, agent_position[1])],
                level_dict[(agent_position[0], agent_position[1] - 1)],
                level_dict[(agent_position[0] + 1, agent_position[1])])
-        move = agent.next_move(obs)
+        move = agent.next_move(agent_position, obs)
         if move == 0:
             new_agent_position = (agent_position[0], agent_position[1] + 1)
         elif move == 1:

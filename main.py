@@ -15,17 +15,18 @@ from lib import agents, game, utils
 if __name__ == '__main__':
 
     params = {
-        'level': 3,
-        'max_steps': 100,
-        'agent_class': agents.FixedStepAgent,
+        'level': 1,
+        'max_steps': 30,
+        # 'agent_class': agents.FixedStepAgent,
+        'agent_class': agents.PositionDependentAgent,
         # 'agent_class': agents.SensorAgent,
     }
 
     pop_params = {
-        'seed': 123,
+        'seed': 12123,
         'n_parents': 5,
         'n_offsprings': 5,
-        'max_generations': 500,
+        'max_generations': 1000,
         'n_breeding': 5,
         'tournament_size': 6,
         'mutation_rate': 0.05,
@@ -33,19 +34,17 @@ if __name__ == '__main__':
     }
 
     genome_params = {
-        'genome_length': params['max_steps'],
-        # 'genome_length': len(list(itertools.product(utils.env_states, repeat=4))),
+        'genome_length': None,
         'primitives': list(range(5)),
     }
 
     np.random.seed(pop_params['seed'])
 
     level_dict = utils.parse_level(f'levels/level_{params["level"]}.txt')
-    inverse_novelty = collections.defaultdict(lambda: 1)
+    inverse_novelty = collections.defaultdict(lambda: 1.)
     def objective(individual):
 
-        agent = params['agent_class'](individual.genome.dna)
-        # agent = SensorAgent(individual.genome.dna, utils.env_states)
+        agent = params['agent_class'](individual.genome.dna, level_dict)
 
         history_state = game.play(level_dict, agent, params['max_steps'])
 
@@ -55,9 +54,17 @@ if __name__ == '__main__':
             individual.fitness += 1. / inverse_novelty[s]
             if level_dict[s] != 'E':
                 inverse_novelty[s] += 1.
+
         individual.fitness *= 1. / len(history_state)
 
         return individual
+
+    if params['agent_class'] == agents.FixedStepAgent:
+        genome_params['genome_length'] = params['max_steps']
+    elif params['agent_class'] == agents.PositionDependentAgent:
+        genome_params['genome_length'] = len(level_dict) - 1
+    else:
+        assert False  # should never be reached
 
     pop = gp.BinaryPopulation(
         pop_params['n_parents'], pop_params['n_offsprings'], pop_params['n_breeding'],
