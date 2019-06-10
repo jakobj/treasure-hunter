@@ -23,7 +23,7 @@ if __name__ == '__main__':
 
     visualize_fitness(history)
 
-    for i in range(0, 500, 50):
-        agent = agents.FixedStepAgent(history['dna'][i])
+    for i in range(0, 1000, 100):
         level_dict = utils.parse_level(f'levels/level_{history["params"]["level"]}.txt')
+        agent = history['params']['agent_class'](history['dna'][i], level_dict)
         game.play(level_dict, agent, history['params']['max_steps'], do_draw_game_state=True)
