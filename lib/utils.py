@@ -1,6 +1,9 @@
 import numpy as np
 
 
+env_states = [' ', '#', '+', 'S', 'E']
+
+
 def parse_level(fn):
 
     level_dict = {}
@@ -10,6 +13,7 @@ def parse_level(fn):
         for i, line in enumerate(f):
             n_rows += 1
             for j, character in enumerate(line):
+                assert character in env_states or character == '\n'
                 if n_rows == 1:
                     n_cols += 1
                 level_dict[(i, j)] = character

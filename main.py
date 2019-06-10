@@ -1,4 +1,5 @@
 import collections
+import itertools
 import matplotlib.pyplot as plt
 import numpy as np
 import pickle
@@ -8,96 +9,55 @@ import time
 sys.path.insert(0, '../python-gp')
 import gp
 
-from lib import utils
-
-LEVEL = 5
-
-
-def draw_game_state(level_dict, position, step, max_step):
-
-    game_state = dict(level_dict)
-    game_state[position] = '*'
-
-    print(step + 1, '/', max_step)
-    for i in range(level_dict['n_rows']):
-        for j in range(level_dict['n_cols']):
-            print(game_state[(i, j)], end='')
-    print()
-
-    time.sleep(0.1)
-
-
-inverse_novelty = collections.defaultdict(lambda: 1)
-
-
-def play(level_fn, moves, *, do_draw_game_state=False):
-
-    level_dict = utils.parse_level(level_fn)
-
-    position = level_dict['S']
-    novelty = 0.
-    for step, move in enumerate(moves):
-        if move == 0:
-            new_position = (position[0], position[1] + 1)
-        elif move == 1:
-            new_position = (position[0] - 1, position[1])
-        elif move == 2:
-            new_position = (position[0], position[1] - 1)
-        elif move == 3:
-            new_position = (position[0] + 1, position[1])
-        elif move == 4:  # blow up fractured wall
-            if level_dict[(position[0], position[1] + 1)] == '+': level_dict[(position[0], position[1] + 1)] = ' '
-            if level_dict[(position[0] - 1, position[1])] == '+': level_dict[(position[0] - 1, position[1])] = ' '
-            if level_dict[(position[0], position[1] - 1)] == '+': level_dict[(position[0], position[1] - 1)] = ' '
-            if level_dict[(position[0] + 1, position[1])] == '+': level_dict[(position[0] + 1, position[1])] = ' '
-            new_position = position
-        else:
-            assert False
-
-        if level_dict[new_position] not in ('#', '+'):
-            position = new_position
-
-        if do_draw_game_state:
-            draw_game_state(level_dict, position, step, len(moves))
-
-        novelty += 1. / inverse_novelty[position]
-
-        # we return before adjusting the novelty of the goal position, because
-        # reaching the exit should always provide novelty
-        if level_dict[position] == 'E':
-            return novelty / step
-
-        inverse_novelty[position] += 1.
-
-    return novelty / len(moves)
-
-
-def objective(individual):
-
-    individual.fitness = play(f'levels/level_{LEVEL}.txt', individual.genome.dna)
-
-    return individual
+from lib import agents, game, utils
 
 
 if __name__ == '__main__':
 
+    params = {
+        'level': 3,
+        'max_steps': 100,
+        'agent_class': agents.FixedStepAgent,
+        # 'agent_class': agents.SensorAgent,
+    }
+
     pop_params = {
-        'seed': 1234,
+        'seed': 123,
         'n_parents': 5,
         'n_offsprings': 5,
-        'max_generations': 1000,
+        'max_generations': 500,
         'n_breeding': 5,
         'tournament_size': 6,
-        'mutation_rate': 0.1,
+        'mutation_rate': 0.05,
         'min_fitness': 1e12,
     }
 
     genome_params = {
-        'genome_length': 100,
+        'genome_length': params['max_steps'],
+        # 'genome_length': len(list(itertools.product(utils.env_states, repeat=4))),
         'primitives': list(range(5)),
     }
 
     np.random.seed(pop_params['seed'])
+
+    level_dict = utils.parse_level(f'levels/level_{params["level"]}.txt')
+    inverse_novelty = collections.defaultdict(lambda: 1)
+    def objective(individual):
+
+        agent = params['agent_class'](individual.genome.dna)
+        # agent = SensorAgent(individual.genome.dna, utils.env_states)
+
+        history_state = game.play(level_dict, agent, params['max_steps'])
+
+        individual.fitness = 0.
+        for s in history_state:
+            s = tuple(s)
+            individual.fitness += 1. / inverse_novelty[s]
+            if level_dict[s] != 'E':
+                inverse_novelty[s] += 1.
+        individual.fitness *= 1. / len(history_state)
+
+        return individual
 
     pop = gp.BinaryPopulation(
         pop_params['n_parents'], pop_params['n_offsprings'], pop_params['n_breeding'],
@@ -110,7 +70,9 @@ if __name__ == '__main__':
         history['dna'].append(pop.champion.genome.dna)
 
     history = gp.evolve(pop, objective, pop_params['max_generations'], pop_params['min_fitness'], record_history=record_history)
-    history['level_fn'] = f'levels/level_{LEVEL}.txt'
+    history['params'] = params
 
-    with open(f'results-{LEVEL}.pkl', 'wb') as f:
+    fn = f'results-{params["level"]}.pkl'
+    print(f'saving to {fn}')
+    with open(fn, 'wb') as f:
         pickle.dump(history, f)
