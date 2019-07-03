@@ -12,18 +12,15 @@ from lib import agents, game, utils
 if __name__ == '__main__':
 
     params = {
-        'level': 1,
-        'max_steps': 30,
-        # 'agent_class': agents.FixedStepAgent,
-        'agent_class': agents.PositionDependentAgent,
-        # 'agent_class': agents.SensorAgent,
+        'level': 5,
+        'max_steps': 50,
     }
 
     pop_params = {
-        'seed': 12123,
+        'seed': 112,
         'n_parents': 5,
         'n_offsprings': 5,
-        'max_generations': 1000,
+        'max_generations': 2000,
         'n_breeding': 5,
         'tournament_size': 6,
         'mutation_rate': 0.05,
@@ -31,7 +28,7 @@ if __name__ == '__main__':
     }
 
     genome_params = {
-        'genome_length': None,
+        'genome_length': params['max_steps'],
         'primitives': list(range(5)),
     }
 
@@ -40,9 +37,9 @@ if __name__ == '__main__':
     inverse_novelty = collections.defaultdict(lambda: 1.)
     def objective(individual):
 
-        agent = params['agent_class'](individual.genome.dna, level_dict)
         level_dict = utils.parse_level(f'levels/level_{params["level"]}.txt')
 
+        agent = agents.FixedStepAgent(individual.genome.dna, level_dict)
 
         history_state = game.play(level_dict, agent, params['max_steps'])
 
@@ -57,24 +54,18 @@ if __name__ == '__main__':
 
         return individual
 
-    if params['agent_class'] == agents.FixedStepAgent:
-        genome_params['genome_length'] = params['max_steps']
-    elif params['agent_class'] == agents.PositionDependentAgent:
-        genome_params['genome_length'] = len(level_dict) - 1
-    else:
-        assert False  # should never be reached
-
     pop = gp.BinaryPopulation(
         pop_params['n_parents'], pop_params['n_offsprings'], pop_params['n_breeding'],
         pop_params['tournament_size'], pop_params['mutation_rate'], pop_params['seed'], genome_params)
 
     def record_history(pop, history):
-        if 'fitness' not in history: history['fitness'] = []
+        history.setdefault('fitness', [])
         history['fitness'].append(pop.champion.fitness)
-        if 'dna' not in history: history['dna'] = []
+        history.setdefault('dna', [])
         history['dna'].append(pop.champion.genome.dna)
 
-    history = gp.evolve(pop, objective, pop_params['max_generations'], pop_params['min_fitness'], record_history=record_history)
+    history = gp.evolve(pop, objective, pop_params['max_generations'], pop_params['min_fitness'],
+                        record_history=record_history)
     history['params'] = params
 
     fn = f'results-{params["level"]}.pkl'
