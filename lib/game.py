@@ -22,9 +22,9 @@ def play(level_dict, agent, max_steps, *, do_draw_game_state=False):
 
     agent_position = level_dict['props']['S']  # set agent to starting position
 
-    history_state = np.empty((max_steps + 1, 2))
+    history_state = np.empty((max_steps, 2))
     history_state[0] = agent_position
-    for step in range(1, max_steps + 1):
+    for step in range(1, max_steps):
         # an observation consists of the content of the current and reachable
         # positions
         obs = (level_dict[agent_position],
