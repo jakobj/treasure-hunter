@@ -9,7 +9,6 @@ from lib import agents, game, utils
 def visualize_fitness(history):
 
     plt.yscale('log')
-    plt.ylim(1e-5, 2e0)
     plt.plot(history['fitness'])
     plt.show()
 
@@ -23,7 +22,6 @@ if __name__ == '__main__':
 
     visualize_fitness(history)
 
-    for i in range(0, 1000, 100):
-        level_dict = utils.parse_level(f'levels/level_{history["params"]["level"]}.txt')
-        agent = history['params']['agent_class'](history['dna'][i], level_dict)
-        game.play(level_dict, agent, history['params']['max_steps'], do_draw_game_state=True)
+    level_dict = utils.parse_level(f'levels/level_{history["params"]["level"]}.txt')
+    agent = agents.FixedStepAgent(history['dna'][-1], level_dict)
+    game.play(level_dict, agent, history['params']['max_steps'], do_draw_game_state=True)
