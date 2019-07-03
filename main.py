@@ -40,11 +40,12 @@ if __name__ == '__main__':
 
     np.random.seed(pop_params['seed'])
 
-    level_dict = utils.parse_level(f'levels/level_{params["level"]}.txt')
     inverse_novelty = collections.defaultdict(lambda: 1.)
     def objective(individual):
 
         agent = params['agent_class'](individual.genome.dna, level_dict)
+        level_dict = utils.parse_level(f'levels/level_{params["level"]}.txt')
+
 
         history_state = game.play(level_dict, agent, params['max_steps'])
 
