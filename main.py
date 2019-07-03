@@ -1,10 +1,7 @@
 import collections
-import itertools
-import matplotlib.pyplot as plt
 import numpy as np
 import pickle
 import sys
-import time
 
 sys.path.insert(0, '../python-gp')
 import gp
